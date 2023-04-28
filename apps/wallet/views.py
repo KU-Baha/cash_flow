@@ -5,7 +5,7 @@ from django.shortcuts import redirect, get_object_or_404, render
 from django.views.generic import TemplateView, CreateView, ListView
 
 from apps.wallet.forms import AccountForm, TransactionForm
-from apps.wallet.models import Account
+from apps.wallet.models import Account, TransactionImage
 
 
 class HomePage(TemplateView):
@@ -79,12 +79,18 @@ class TransactionView(IsAuthenticatedView, View):
         return render(request, 'wallet/transaction.html', {'form': form, 'title': 'Создать транзакцию'})
 
     def post(self, request):
-        form = TransactionForm(request.POST)
+        form = TransactionForm(user=request.user, data=request.POST)
+        images = request.FILES.getlist('files')
 
         if form.is_valid():
-            form.save()
+            transaction = form.save()
+
+            for image in images:
+                TransactionImage.objects.create(transaction=transaction, image=image)
+
             messages.success(request, 'Транзакция успешно создана')
             return redirect('transaction')
 
         messages.success(request, f"{form.errors}")
         return redirect('transaction')
+#
